@@ -8,6 +8,7 @@ This repo in order to create a script to enable me to use vim-like control on Wi
 - [x] Switch between Chinese and English with alt + CapsLock
 
 - [ ] Toggle case.
+- [ ] add 系统托盘
 
 - [ ] Numeric Keypad Area in the right hand
 - [ ] make a myself everything.
