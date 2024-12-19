@@ -52,3 +52,13 @@ Run "notepad <the path of file>"
 
 * ; This make sure no matter what key you press before, this hotkey still function well.
 ``` 
+
+### Send
+
+In this case, press a, and will toggle ctrl and Space
+```AutoHotkey
+a::
+{
+    Send ("^ ")
+}
+```
