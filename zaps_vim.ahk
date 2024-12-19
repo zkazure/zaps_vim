@@ -10,17 +10,12 @@ global press_caps
 
 CapsLock::
 {
+    global press_caps
     press_caps:=1
     CapsLock:=""
 
-    KeyWait ("CapsLock")
-
-    if(press_caps)
-    {
-        ;MsgBox(press_caps)
-
-        press_caps:=0
-    }
+    KeyWait("CapsLock")
+    press_caps:=0
     return
 }
 
@@ -33,6 +28,8 @@ CapsLock::
 {
     MsgBox("2")
 }
+
+; change chinese and english
 !CapsLock::
 {
     ;MsgBox("3")
@@ -43,6 +40,17 @@ CapsLock::
     MsgBox("4")
 }
 
+; basic vim-like
+#HotIf (GetKeyState("CapsLock", "P"))
+k::Send("{Up 1}")
+j::Send("{Down 1}")
+h::Send("{Left 1}")
+l::Send("{Right 1}")
+[::Send("{Esc}")
+Space::Send("{Enter}")
+F5:: Reload
+i::Send("{BackSpace}")
+o::Send("{Delete}")
 /*
 global ctrlZ, CapsLock2, CapsLock
 
