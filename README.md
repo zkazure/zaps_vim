@@ -6,18 +6,22 @@ This repo in order to create a script to enable me to use vim-like control on Wi
 - [x] escape with ctrl + leftSquareBracket.
 - [x] enter without move hands.
 - [x] Switch between Chinese and English with alt + CapsLock
+- [ ] delete the backquote function, if fn is easy to press
+- [ ] if fn is easy to press, then the f1-f9 should be use.
+- [ ] maybe i should change the menu and the rctrl.
 
 - [ ] Toggle case.
-- [ ] add 系统托盘
 
-- [ ] Numeric Keypad Area in the right hand
+- [ ] Numeric Keypad Area in the right hand. use CapsLock shift lalt win, because you are able to press with your left hand.nm,mnm,dsjlksdv\\\dfadsaerqew
 - [ ] make a myself everything.
 - [ ] clipboard
 - [ ] CapsLock+ to input english symbol.
 - [ ] Some icons
 - [ ] load animation
 
-## Using Docs
+- [ ] learn more hotkeys
+- [ ] 使用快捷键ctrl ralt wasd移动鼠标或者使用hjkl实现不同速度移动鼠标或者其他快捷键
+- [ ] 到底应该替换什么快捷键，这需要看我的新键盘到了之后如何。
 
 
 ## Learn autoHotkey
