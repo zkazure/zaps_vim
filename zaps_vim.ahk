@@ -55,7 +55,7 @@ o::Send("{Delete}")
 ;ctrl+enter in order to send message or go the the next line in some software 
 ; as the same time you could change line anywhere and do not effect the text in the same line
 Enter::Send("^{Enter}")
-
+\::Send("{``}")
 /*
 global ctrlZ, CapsLock2, CapsLock
 
