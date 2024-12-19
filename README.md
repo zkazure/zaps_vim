@@ -2,9 +2,19 @@ This repo in order to create a script to enable me to use vim-like control on Wi
 
 ## Goal Function
 
-- [ ] move with hjkl.
-- [ ] escape with ctrl + leftSquareBracket.
-- [ ] enter without move hands.
+- [x] move with hjkl.
+- [x] escape with ctrl + leftSquareBracket.
+- [x] enter without move hands.
+- [x] Switch between Chinese and English with alt + CapsLock
+
+- [ ] Toggle case.
+
+- [ ] Numeric Keypad Area in the right hand
+- [ ] make a myself everything.
+- [ ] clipboard
+- [ ] CapsLock+ to input english symbol.
+- [ ] Some icons
+- [ ] load animation
 
 ## Using Docs
 
