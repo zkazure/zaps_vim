@@ -34,6 +34,9 @@ This repo in order to create a script to enable me to use vim-like control on Wi
 //
 - [ ] what progamming language that vim writed with
 - [ ] write a corresponding terminal editor. 
+- [ ] 利用图形界面的方框大小判定方向键的移动
+- [ ] 这么做下去可能不是autohotkey可以完成的事情了。一方面我需要搭建一个虚拟机，一方面我需要搭建另一个仓库保存我所有的开发日志，一方面我需要学习其他语言了。
+
 ## Learn autoHotkey
 
 ### Example
