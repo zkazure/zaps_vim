@@ -29,6 +29,8 @@ This repo in order to create a script to enable me to use vim-like control on Wi
     - should not create a new page every time.
 - [ ] i need to add a hotkey in. to accept different command.
 - [ ] 我应该写一个接口调用不同的配置文件，方便使用，最后或许还可以写一个GUI。
+- [ ] should be able to control different windows with hotkey, close, change, drag, pin, transparent.
+- [ ] add a utool similar to the mouse toolkit.
 ## Learn autoHotkey
 
 ### Example
