@@ -27,7 +27,7 @@ This repo in order to create a script to enable me to use vim-like control on Wi
     - what application is used most frequenctly.
     - broswer use ctrl shift + number select from the other side 
     - should not create a new page every time.
-
+- [ ] i need to add a hotkey in. to accept different command.
 ## Learn autoHotkey
 
 ### Example
