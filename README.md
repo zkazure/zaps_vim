@@ -31,6 +31,9 @@ This repo in order to create a script to enable me to use vim-like control on Wi
 - [ ] 我应该写一个接口调用不同的配置文件，方便使用，最后或许还可以写一个GUI。
 - [ ] should be able to control different windows with hotkey, close, change, drag, pin, transparent.
 - [ ] add a utool similar to the mouse toolkit.
+//
+- [ ] what progamming language that vim writed with
+- [ ] write a corresponding terminal editor. 
 ## Learn autoHotkey
 
 ### Example
