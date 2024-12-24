@@ -42,19 +42,61 @@ CapsLock::
 
 ; basic vim-like
 #HotIf (GetKeyState("CapsLock", "P"))
-k::Send("{Up 1}")
-j::Send("{Down 1}")
-h::Send("{Left 1}")
-l::Send("{Right 1}")
-[::Send("{Esc}")
-Space::Send("{Enter}")
-F5:: Reload
-i::Send("{BackSpace}")
-o::Send("{Delete}")
+
+k::
+{
+    Send("{Up 1}")
+    return
+}
+j::
+{
+   Send("{Down 1}")
+    return
+}
+h::
+{
+    Send("{Left 1}")
+    return
+}
+l::
+{
+   Send("{Right 1}")
+    return
+}
+[::
+{
+    Send("{Esc}")
+    return
+}
+Space::
+{
+    Send("{Enter}")
+    return
+}
+F5:: 
+{
+    Reload
+    return
+}
+i::
+{
+    Send("{BackSpace}")
+    return
+}
+o::
+{
+    Send("{Delete}")
+    return
+}
 
 ;ctrl+enter in order to send message or go the the next line in some software 
 ; as the same time you could change line anywhere and do not effect the text in the same line
-Enter::Send("^{Enter}")
+Enter::
+{
+    Send("^{Enter}")
+    return
+}
+
 /*
 \::Send("{``}")
 global ctrlZ, CapsLock2, CapsLock
