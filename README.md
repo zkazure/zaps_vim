@@ -1,6 +1,7 @@
 This repo in order to create a script to enable me to use vim-like control on Windows with autohotkey v2.
 
 ## Goal Function
+- [ ] This software should be the easy win-vind, I could not use the  win-vind
 
 - [x] move with hjkl.
 - [x] escape with ctrl + leftSquareBracket.
