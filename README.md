@@ -1,7 +1,7 @@
 This repo in order to create a script to enable me to use vim-like control on Windows with autohotkey v2.
 
 ## Goal Function
-- [ ] This software should be the easy win-vind, I could not use the  win-vind
+- [ ] This software should be the easy win-vind, I could not use the  win-vind. 我觉得现在的win-vind还不好用。
 
 - [x] move with hjkl.
 - [x] escape with ctrl + leftSquareBracket.
@@ -10,6 +10,7 @@ This repo in order to create a script to enable me to use vim-like control on Wi
 - [ ] delete the backquote function, if fn is easy to press
 - [ ] if fn is easy to press, then the f1-f9 should be use.
 - [ ] maybe i should change the menu and the rctrl.
+- [ ] 增加一个切换窗口、切换桌面的命令
 //
 - [ ] Toggle case.
 //
