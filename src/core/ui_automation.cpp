@@ -1,7 +1,15 @@
 #include "core/ui_automation.h"
-#include <sstream>
+#include <comutil.h>
 
-UIAutomationManager::UIAutomationManager() : automation(nullptr) {
+// 定义CLSID和IID
+DEFINE_GUID(CLSID_CUIAutomation, 0xff48dba4, 0x60ef, 0x4201, 0xaa, 0x87, 0x54, 0x10, 0x3e, 0xef, 0x59, 0x4e);
+DEFINE_GUID(IID_IUIAutomation, 0x30cbe57d, 0xd9d0, 0x452a, 0xab, 0x13, 0x7a, 0xc5, 0xac, 0x48, 0x25, 0xee);
+
+UIAutomationManager::UIAutomationManager() : 
+    automation(nullptr),
+    modeManager(std::make_unique<ModeManager>()),
+    statusBar(std::make_unique<StatusBar>()) {
+    modeManager->registerModeChangeCallback([this](Mode mode) { onModeChanged(mode); });
 }
 
 UIAutomationManager::~UIAutomationManager() {
@@ -12,31 +20,91 @@ UIAutomationManager::~UIAutomationManager() {
 }
 
 bool UIAutomationManager::initialize() {
-    HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (FAILED(hr)) return false;
+
+    hr = CoCreateInstance(CLSID_CUIAutomation, nullptr,
+                         CLSCTX_INPROC_SERVER, IID_IUIAutomation,
+                         reinterpret_cast<void**>(&automation));
+    
     if (FAILED(hr)) {
+        CoUninitialize();
         return false;
     }
 
-    hr = CoCreateInstance(__uuidof(CUIAutomation), NULL,
-                         CLSCTX_INPROC_SERVER, __uuidof(IUIAutomation),
-                         (void**)&automation);
-    return SUCCEEDED(hr);
+    return true;
+}
+
+void UIAutomationManager::collectElements(struct IUIAutomationElement* element) {
+    if (!element) return;
+
+    struct IUIAutomationInvokePattern* invokePattern = nullptr;
+    HRESULT hr = element->GetCurrentPattern(UIA_InvokePatternId, 
+                                          reinterpret_cast<IUnknown**>(&invokePattern));
+    
+    if (SUCCEEDED(hr) && invokePattern) {
+        BSTR name = nullptr;
+        RECT bounds = {};
+        
+        if (SUCCEEDED(element->get_CurrentName(&name))) {
+            if (name) {
+                char* elementName = _com_util::ConvertBSTRToString(name);
+                if (elementName) {
+                    if (SUCCEEDED(element->get_CurrentBoundingRectangle(&bounds))) {
+                        UIElement uiElement;
+                        uiElement.id = generateHintLabel(elements.size());
+                        uiElement.name = elementName;
+                        uiElement.bounds = bounds;
+                        uiElement.clickable = true;
+                        
+                        elements[uiElement.id] = uiElement;
+                    }
+                    delete[] elementName;
+                }
+                SysFreeString(name);
+            }
+        }
+        invokePattern->Release();
+    }
+
+    // 遍历子元素
+    struct IUIAutomationTreeWalker* walker = nullptr;
+    if (SUCCEEDED(automation->get_RawViewWalker(&walker)) && walker) {
+        struct IUIAutomationElement* child = nullptr;
+        if (SUCCEEDED(walker->GetFirstChildElement(element, &child)) && child) {
+            do {
+                collectElements(child);
+                
+                struct IUIAutomationElement* next = nullptr;
+                if (SUCCEEDED(walker->GetNextSiblingElement(child, &next))) {
+                    child->Release();
+                    child = next;
+                } else {
+                    child->Release();
+                    break;
+                }
+            } while (child);
+        }
+        walker->Release();
+    }
 }
 
 std::vector<UIElement> UIAutomationManager::getClickableElements() {
-    std::vector<UIElement> result;
     elements.clear();
-
-    IUIAutomationElement* root = nullptr;
+    
+    struct IUIAutomationElement* root = nullptr;
     HRESULT hr = automation->GetRootElement(&root);
-    if (SUCCEEDED(hr)) {
+    
+    if (SUCCEEDED(hr) && root) {
         collectElements(root);
         root->Release();
     }
-
+    
+    std::vector<UIElement> result;
     for (const auto& pair : elements) {
         result.push_back(pair.second);
     }
+    
     return result;
 }
 
@@ -76,68 +144,19 @@ bool UIAutomationManager::clickPosition(int x, int y) {
 void UIAutomationManager::showHints() {
     int index = 0;
     for (const auto& pair : elements) {
+        const UIElement& element = pair.second;
         std::string hint = generateHintLabel(index++);
-        drawHint(pair.second, hint);
+        drawHint(element, hint);
     }
 }
 
 void UIAutomationManager::hideHints() {
-    // 刷新屏幕，清除提示
+    // 重绘屏幕以清除所有提示
     InvalidateRect(NULL, NULL, TRUE);
-}
-
-// 私有辅助方法
-
-void UIAutomationManager::collectElements(IUIAutomationElement* element) {
-    if (!element) return;
-
-    VARIANT_BOOL isClickable;
-    IUIAutomationInvokePattern* invokePattern = nullptr;
-    if (SUCCEEDED(element->GetCurrentPattern(UIA_InvokePatternId, (IUnknown**)&invokePattern))) {
-        isClickable = VARIANT_TRUE;
-        invokePattern->Release();
-    }
-
-    if (isClickable) {
-        UIElement uiElement;
-        BSTR name;
-        if (SUCCEEDED(element->get_CurrentName(&name))) {
-            uiElement.name = _bstr_t(name);
-            SysFreeString(name);
-        }
-
-        RECT bounds;
-        element->get_CurrentBoundingRectangle(&bounds);
-        uiElement.bounds = bounds;
-        uiElement.clickable = true;
-
-        static int elementCount = 0;
-        std::stringstream ss;
-        ss << "element_" << elementCount++;
-        uiElement.id = ss.str();
-
-        elements[uiElement.id] = uiElement;
-    }
-
-    // 递归处理子元素
-    IUIAutomationTreeWalker* walker;
-    automation->get_RawViewWalker(&walker);
-    
-    IUIAutomationElement* child;
-    walker->GetFirstChildElement(element, &child);
-    while (child) {
-        collectElements(child);
-        IUIAutomationElement* next;
-        walker->GetNextSiblingElement(child, &next);
-        child->Release();
-        child = next;
-    }
-    
-    walker->Release();
+    UpdateWindow(GetForegroundWindow());
 }
 
 std::string UIAutomationManager::generateHintLabel(int index) {
-    // 生成类似Vimium的提示标签（aa, ab, ac, ...）
     std::string result;
     do {
         result = (char)('a' + (index % 26)) + result;
@@ -147,15 +166,65 @@ std::string UIAutomationManager::generateHintLabel(int index) {
 }
 
 void UIAutomationManager::drawHint(const UIElement& element, const std::string& hint) {
-    HDC hdc = GetDC(NULL);
-    
-    // 设置文本样式
-    SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, RGB(255, 0, 0));
-    
-    // 绘制提示文本
-    RECT rect = element.bounds;
-    DrawText(hdc, hint.c_str(), -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-    
-    ReleaseDC(NULL, hdc);
+    int len = MultiByteToWideChar(CP_UTF8, 0, hint.c_str(), -1, nullptr, 0);
+    if (len <= 0) return;
+
+    wchar_t* wHint = new wchar_t[len];
+    MultiByteToWideChar(CP_UTF8, 0, hint.c_str(), -1, wHint, len);
+
+    HWND hWnd = CreateWindowExW(
+        WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+        L"STATIC",
+        wHint,
+        WS_POPUP | WS_VISIBLE | SS_CENTER,
+        element.bounds.left,
+        element.bounds.top,
+        30,  // 固定宽度
+        20,  // 固定高度
+        nullptr,
+        nullptr,
+        GetModuleHandle(nullptr),
+        nullptr
+    );
+
+    delete[] wHint;
+
+    if (hWnd) {
+        SetLayeredWindowAttributes(hWnd, 0, 200, LWA_ALPHA);
+        HDC hdc = GetDC(hWnd);
+        SetBkColor(hdc, RGB(0, 0, 0));
+        SetTextColor(hdc, RGB(255, 255, 255));
+        ReleaseDC(hWnd, hdc);
+    }
+}
+
+bool UIAutomationManager::handleKeyEvent(WPARAM key, bool isKeyDown) {
+    return modeManager->handleKeyEvent(key, isKeyDown);
+}
+
+Mode UIAutomationManager::getCurrentMode() const {
+    return modeManager->getCurrentMode();
+}
+
+void UIAutomationManager::onModeChanged(Mode newMode) {
+    switch (newMode) {
+        case Mode::HINT:
+            showHints();
+            statusBar->updateMode(newMode);
+            break;
+        case Mode::NORMAL:
+            hideHints();
+            statusBar->updateMode(newMode);
+            break;
+        case Mode::INSERT:
+            hideHints();
+            statusBar->updateMode(newMode);
+            break;
+    }
+}
+
+void UIAutomationManager::showStatusMessage(const std::string& message) {
+    if (statusBar) {
+        statusBar->updateMessage(message);
+    }
 } 

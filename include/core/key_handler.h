@@ -1,15 +1,16 @@
 #pragma once
 
-#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #include <sdkddkver.h>
 #include <windows.h>
-#else
-#include <windef.h>
 #include <winuser.h>
-#endif
 
 #include "../mode/mode_manager.h"
 #include "window_manager.h"

@@ -1,23 +1,36 @@
 #pragma once
 
-#ifdef _WIN32
+// 首先定义所有需要的宏
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <sdkddkver.h>
-#include <windows.h>
-#include <UIAutomation.h>
-#else
-#include <windef.h>
-#include <winuser.h>
-// Wine下UI自动化的替代定义
-typedef void* IUIAutomation;
-typedef void* IUIAutomationElement;
+
+// 解决new关键字冲突
+#ifdef new
+#undef new
 #endif
 
+// 基础Windows头文件
+#include <windows.h>
+#include <objbase.h>
+#include <oleauto.h>
+
+// UI Automation接口定义
+#include <UIAutomationClient.h>
+
+// 标准库头文件
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
+
+// 项目头文件
+#include "core/mode_manager.h"
+#include "core/status_bar.h"
 
 struct UIElement {
     std::string id;
@@ -31,26 +44,24 @@ public:
     UIAutomationManager();
     ~UIAutomationManager();
 
-    // 初始化UI自动化
     bool initialize();
-    
-    // 获取可点击元素
     std::vector<UIElement> getClickableElements();
-    
-    // 点击操作
     bool clickElement(const std::string& elementId);
     bool clickPosition(int x, int y);
-    
-    // 提示标签显示
     void showHints();
     void hideHints();
+    bool handleKeyEvent(WPARAM key, bool isKeyDown);
+    Mode getCurrentMode() const;
+    void showStatusMessage(const std::string& message);
 
 private:
-    IUIAutomation* automation;
+    struct IUIAutomation* automation;
     std::map<std::string, UIElement> elements;
+    std::unique_ptr<ModeManager> modeManager;
+    std::unique_ptr<StatusBar> statusBar;
     
-    // 辅助方法
-    void collectElements(IUIAutomationElement* element);
+    void collectElements(struct IUIAutomationElement* element);
     std::string generateHintLabel(int index);
     void drawHint(const UIElement& element, const std::string& hint);
+    void onModeChanged(Mode newMode);
 }; 

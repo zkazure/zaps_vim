@@ -1,6 +1,10 @@
 file(REMOVE_RECURSE
   "CMakeFiles/pixel-vim.dir/src/core/key_handler.cpp.o"
   "CMakeFiles/pixel-vim.dir/src/core/key_handler.cpp.o.d"
+  "CMakeFiles/pixel-vim.dir/src/core/mode_manager.cpp.o"
+  "CMakeFiles/pixel-vim.dir/src/core/mode_manager.cpp.o.d"
+  "CMakeFiles/pixel-vim.dir/src/core/status_bar.cpp.o"
+  "CMakeFiles/pixel-vim.dir/src/core/status_bar.cpp.o.d"
   "CMakeFiles/pixel-vim.dir/src/core/ui_automation.cpp.o"
   "CMakeFiles/pixel-vim.dir/src/core/ui_automation.cpp.o.d"
   "CMakeFiles/pixel-vim.dir/src/core/window_manager.cpp.o"

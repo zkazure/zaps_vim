@@ -153,6 +153,54 @@ src/core/key_handler.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/key_handler.cpp.s
 .PHONY : src/core/key_handler.cpp.s
 
+src/core/mode_manager.o: src/core/mode_manager.cpp.o
+.PHONY : src/core/mode_manager.o
+
+# target to build an object file
+src/core/mode_manager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/mode_manager.cpp.o
+.PHONY : src/core/mode_manager.cpp.o
+
+src/core/mode_manager.i: src/core/mode_manager.cpp.i
+.PHONY : src/core/mode_manager.i
+
+# target to preprocess a source file
+src/core/mode_manager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/mode_manager.cpp.i
+.PHONY : src/core/mode_manager.cpp.i
+
+src/core/mode_manager.s: src/core/mode_manager.cpp.s
+.PHONY : src/core/mode_manager.s
+
+# target to generate assembly for a file
+src/core/mode_manager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/mode_manager.cpp.s
+.PHONY : src/core/mode_manager.cpp.s
+
+src/core/status_bar.o: src/core/status_bar.cpp.o
+.PHONY : src/core/status_bar.o
+
+# target to build an object file
+src/core/status_bar.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/status_bar.cpp.o
+.PHONY : src/core/status_bar.cpp.o
+
+src/core/status_bar.i: src/core/status_bar.cpp.i
+.PHONY : src/core/status_bar.i
+
+# target to preprocess a source file
+src/core/status_bar.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/status_bar.cpp.i
+.PHONY : src/core/status_bar.cpp.i
+
+src/core/status_bar.s: src/core/status_bar.cpp.s
+.PHONY : src/core/status_bar.s
+
+# target to generate assembly for a file
+src/core/status_bar.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pixel-vim.dir/build.make CMakeFiles/pixel-vim.dir/src/core/status_bar.cpp.s
+.PHONY : src/core/status_bar.cpp.s
+
 src/core/ui_automation.o: src/core/ui_automation.cpp.o
 .PHONY : src/core/ui_automation.o
 
@@ -333,6 +381,12 @@ help:
 	@echo "... src/core/key_handler.o"
 	@echo "... src/core/key_handler.i"
 	@echo "... src/core/key_handler.s"
+	@echo "... src/core/mode_manager.o"
+	@echo "... src/core/mode_manager.i"
+	@echo "... src/core/mode_manager.s"
+	@echo "... src/core/status_bar.o"
+	@echo "... src/core/status_bar.i"
+	@echo "... src/core/status_bar.s"
 	@echo "... src/core/ui_automation.o"
 	@echo "... src/core/ui_automation.i"
 	@echo "... src/core/ui_automation.s"
