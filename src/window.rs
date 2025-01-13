@@ -36,6 +36,9 @@ use winapi::um::winuser::{
     GetWindowInfo,
     WINDOWINFO,
     WS_OVERLAPPEDWINDOW,
+    WINDOWPLACEMENT,
+    GetWindowPlacement,
+    SW_SHOWMINIMIZED,
 };
 use std::ptr::null_mut;
 
@@ -113,9 +116,18 @@ impl WindowManager {
             // 切换到选中的窗口
             if let Some(&next_window) = self.window_list.get(self.current_index) {
                 log::debug!("切换到窗口: {:?}", next_window);
-                // 先恢复最小化的窗口
-                ShowWindow(next_window, SW_RESTORE);
-                // 然后设置为前台窗口
+                
+                // 获取窗口的当前显示状态
+                let mut placement: WINDOWPLACEMENT = std::mem::zeroed();
+                placement.length = std::mem::size_of::<WINDOWPLACEMENT>() as u32;
+                GetWindowPlacement(next_window, &mut placement);
+
+                // 如果窗口是最小化的，才需要恢复
+                if placement.showCmd as i32 == SW_SHOWMINIMIZED {
+                    ShowWindow(next_window, SW_RESTORE);
+                }
+                
+                // 设置为前台窗口
                 SetForegroundWindow(next_window);
             }
         }
