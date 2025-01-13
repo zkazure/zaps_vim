@@ -102,8 +102,9 @@ impl WindowManager {
             // 切换到选中的窗口
             if let Some(&next_window) = self.window_list.get(self.current_index) {
                 log::debug!("切换到窗口: {:?}", next_window);
+                // 先恢复最小化的窗口
                 ShowWindow(next_window, SW_RESTORE);
-                BringWindowToTop(next_window);
+                // 然后设置为前台窗口
                 SetForegroundWindow(next_window);
             }
         }

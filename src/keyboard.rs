@@ -73,29 +73,16 @@ impl KeyboardManager {
             return false;
         }
 
-        // 如果 Alt 键被按下
+        // 如果 Alt 键被按下，让热键处理程序来处理 H 和 L 键
         let alt_state = unsafe { GetKeyState(VK_MENU as i32) };
         if (alt_state as u16 & 0x8000u16) != 0 {
-            // 使用常量定义键码
             const VK_H: i32 = b'H' as i32;
             const VK_L: i32 = b'L' as i32;
 
             match vk_code as i32 {
-                VK_H => {
-                    if !is_key_up {
-                        if let Some(window_manager) = &mut self.window_manager {
-                            window_manager.select_window(Direction::Left);
-                        }
-                    }
-                    return true;
-                }
-                VK_L => {
-                    if !is_key_up {
-                        if let Some(window_manager) = &mut self.window_manager {
-                            window_manager.select_window(Direction::Right);
-                        }
-                    }
-                    return true;
+                VK_H | VK_L => {
+                    // 返回 false，让热键处理程序来处理
+                    return false;
                 }
                 _ => {}
             }
