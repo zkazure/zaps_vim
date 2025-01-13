@@ -4,3 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# Windows API 支持，添加所有需要的特性
+winapi = { version = "0.3", features = [
+    "winuser",          # 用户界面相关
+    "windef",           # Windows 类型定义
+    "minwindef",        # 基本类型定义
+    "wincon",           # 控制台相关
+    "processthreadsapi", # 进程和线程
+    "libloaderapi",     # 动态链接库
+    "errhandlingapi",   # 错误处理
+    "windowsx",         # 扩展功能
+]}
+
+# 错误处理
+anyhow = "1.0"
+
+# 日志相关
+log = "0.4"
+env_logger = "0.10"
