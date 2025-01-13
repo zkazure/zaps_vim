@@ -9,17 +9,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-// 解决new关键字冲突
-#ifdef new
-#undef new
-#endif
-
 // 基础Windows头文件
 #include <windows.h>
 #include <objbase.h>
 #include <oleauto.h>
-
-// UI Automation接口定义
 #include <UIAutomationClient.h>
 
 // 标准库头文件
@@ -28,9 +21,9 @@
 #include <map>
 #include <memory>
 
-// 项目头文件
-#include "core/mode_manager.h"
-#include "core/status_bar.h"
+// 前向声明
+class ModeManager;
+class StatusBar;
 
 struct UIElement {
     std::string id;
@@ -51,17 +44,17 @@ public:
     void showHints();
     void hideHints();
     bool handleKeyEvent(WPARAM key, bool isKeyDown);
-    Mode getCurrentMode() const;
+    std::string getCurrentMode() const;
     void showStatusMessage(const std::string& message);
 
 private:
-    struct IUIAutomation* automation;
+    IUIAutomation* automation;
     std::map<std::string, UIElement> elements;
     std::unique_ptr<ModeManager> modeManager;
     std::unique_ptr<StatusBar> statusBar;
     
-    void collectElements(struct IUIAutomationElement* element);
+    void collectElements(IUIAutomationElement* element);
     std::string generateHintLabel(int index);
     void drawHint(const UIElement& element, const std::string& hint);
-    void onModeChanged(Mode newMode);
+    void onModeChanged(std::string mode);
 }; 

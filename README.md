@@ -5,6 +5,7 @@
 ## 特性
 
 ### 多模式支持
+
 - 桌面模式 (Desktop Mode)：系统级导航和窗口管理
 - 普通模式 (Normal Mode)：文本操作和导航
 - 插入模式 (Insert Mode)：文本输入
