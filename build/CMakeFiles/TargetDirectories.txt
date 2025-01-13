@@ -1,0 +1,3 @@
+/home/zka_wsl/dev/pixel-vim/build/CMakeFiles/pixel-vim.dir
+/home/zka_wsl/dev/pixel-vim/build/CMakeFiles/edit_cache.dir
+/home/zka_wsl/dev/pixel-vim/build/CMakeFiles/rebuild_cache.dir
