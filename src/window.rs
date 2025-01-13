@@ -25,6 +25,17 @@ use winapi::um::winuser::{
     SM_CYSCREEN,
     SWP_SHOWWINDOW,
     DestroyWindow,
+    GetClassNameW,
+    GetWindowLongW,
+    GetWindowTextLengthW,
+    GWL_STYLE,
+    GWL_EXSTYLE,
+    WS_CAPTION,
+    WS_VISIBLE,
+    GetWindowThreadProcessId,
+    GetWindowInfo,
+    WINDOWINFO,
+    WS_OVERLAPPEDWINDOW,
 };
 use std::ptr::null_mut;
 
@@ -117,31 +128,135 @@ impl WindowManager {
         unsafe extern "system" fn enum_window_proc(hwnd: HWND, l_param: isize) -> i32 {
             let window_list = &mut *(l_param as *mut Vec<HWND>);
             
-            if IsWindowVisible(hwnd) != 0 {
-                let mut title: [u16; 512] = [0; 512];
-                let title_len = GetWindowTextW(hwnd, title.as_mut_ptr(), 512) as usize;
-                
-                if title_len > 0 {
-                    window_list.push(hwnd);
+            // 1. 检查窗口是否可见
+            if IsWindowVisible(hwnd) == 0 {
+                return 1;
+            }
+
+            // 2. 获取窗口标题
+            let mut title: [u16; 512] = [0; 512];
+            let title_len = GetWindowTextLengthW(hwnd);
+            if title_len == 0 {
+                return 1;
+            }
+            GetWindowTextW(hwnd, title.as_mut_ptr(), 512);
+            let title_str = String::from_utf16_lossy(
+                &title[..title.iter().position(|&x| x == 0).unwrap_or(512)]
+            );
+
+            // 3. 排除空标题或特定标题的窗口
+            let excluded_titles = [
+                "",
+                "Program Manager",
+                "Windows Input Experience",
+                "Microsoft Text Input Application",
+                "Windows Shell Experience Host",
+            ];
+            if excluded_titles.contains(&title_str.as_str()) {
+                return 1;
+            }
+
+            // 4. 获取窗口类名
+            let mut class_name: [u16; 512] = [0; 512];
+            GetClassNameW(hwnd, class_name.as_mut_ptr(), 512);
+            let class_str = String::from_utf16_lossy(
+                &class_name[..class_name.iter().position(|&x| x == 0).unwrap_or(512)]
+            );
+            
+            // 5. 排除特定的系统窗口类（移除了 ApplicationFrameWindow）
+            let excluded_classes = [
+                "Shell_TrayWnd",           // 任务栏
+                "DV2ControlHost",          // 任务视图
+                "Windows.UI.Core.CoreWindow", // UWP 核心窗口
+                "Progman",                 // 程序管理器
+                "WorkerW",                 // 桌面工作区
+                "NotifyIconOverflowWindow", // 通知区域溢出窗口
+                "WindowSwitcher",          // 我们自己的切换窗口
+                "PopupMenu",               // 弹出菜单
+                "tooltips_class32",        // 工具提示
+                "ForegroundStaging",       // 前台暂存
+                "WindowsDeferredUpdate",   // Windows 延迟更新
+                "MultitaskingViewFrame",   // 多任务视图
+                "Shell_SecondaryTrayWnd",  // 辅助任务栏
+                "Windows.UI.Input.InputSite", // Windows 输入
+                "MSCTFIME UI",            // 输入法界面
+                "TrayNotifyWnd",          // 通知区域
+                "Button",                 // 按钮
+                "Static",                 // 静态控件
+                "TaskListThumbnailWnd",   // 任务列表缩略图
+                "PseudoConsoleWindow",    // 伪控制台窗口
+                "TaskSwitcherWnd",        // 任务切换窗口
+                "TaskSwitcherOverlay",    // 任务切换覆盖
+            ];
+
+            if excluded_classes.contains(&class_str.as_str()) {
+                return 1;
+            }
+
+            // 6. 获取窗口样式
+            let style = GetWindowLongW(hwnd, GWL_STYLE) as u32;
+            let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+            
+            // 7. 修改后的窗口样式检查逻辑
+            // 放宽条件：只要是可见的主窗口即可
+            if (style & (WS_VISIBLE | WS_CAPTION)) == 0 || 
+               (ex_style & WS_EX_TOOLWINDOW) != 0 {
+                // 特殊处理：如果是 UWP 应用或某些特定应用，即使不满足标准窗口样式也允许
+                if class_str != "ApplicationFrameWindow" && 
+                   !title_str.contains("微信") && 
+                   !title_str.contains("企业微信") {
+                    return 1;
                 }
             }
+
+            // 8. 检查窗口是否可用
+            let mut info: WINDOWINFO = std::mem::zeroed();
+            info.cbSize = std::mem::size_of::<WINDOWINFO>() as u32;
+            if GetWindowInfo(hwnd, &mut info) == 0 {
+                return 1;
+            }
+
+            // 9. 获取窗口所属进程
+            let mut pid: u32 = 0;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            
+            // 10. 如果进程 ID 为 0，说明是系统窗口
+            if pid == 0 {
+                return 1;
+            }
+
+            // 添加调试日志
+            log::debug!("添加窗口: 标题='{}', 类名='{}'", title_str, class_str);
+
+            // 所有检查都通过，添加到窗口列表
+            window_list.push(hwnd);
             1
         }
 
+        // 枚举所有顶级窗口
         EnumWindows(
             Some(enum_window_proc),
             &mut self.window_list as *mut Vec<HWND> as isize,
         );
 
-        self.current_window = GetForegroundWindow();
-        
-        if !self.window_list.contains(&self.current_window) && !self.current_window.is_null() {
-            self.window_list.insert(0, self.current_window);
+        // 确保当前窗口在列表中（如果是有效窗口）
+        let foreground = GetForegroundWindow();
+        if !foreground.is_null() {
+            let style = GetWindowLongW(foreground, GWL_STYLE) as u32;
+            let ex_style = GetWindowLongW(foreground, GWL_EXSTYLE) as u32;
+            
+            // 只有当前窗口是有效的应用程序窗口时才添加
+            if (style & WS_OVERLAPPEDWINDOW) != 0 && 
+               (style & WS_CAPTION) != 0 && 
+               (ex_style & WS_EX_TOOLWINDOW) == 0 &&
+               !self.window_list.contains(&foreground) {
+                self.window_list.insert(0, foreground);
+            }
         }
     }
 
     /// 显示切换预览窗口
-    unsafe fn show_switcher(&mut self, selected_index: usize) {
+    unsafe fn show_switcher(&mut self, _selected_index: usize) {
         // 如果预览窗口不存在，创建它
         if self.switcher_window.is_null() {
             self.create_switcher_window();
