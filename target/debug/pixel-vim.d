@@ -1,1 +1,0 @@
-D:\Personal\dev\pixel-vim\target\debug\pixel-vim.exe: D:\Personal\dev\pixel-vim\src\debug.rs D:\Personal\dev\pixel-vim\src\indicator.rs D:\Personal\dev\pixel-vim\src\keyboard.rs D:\Personal\dev\pixel-vim\src\main.rs D:\Personal\dev\pixel-vim\src\mode.rs D:\Personal\dev\pixel-vim\src\window.rs

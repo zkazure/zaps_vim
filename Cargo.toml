@@ -2,6 +2,7 @@
 name = "pixel-vim"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 # Windows API 支持，添加所有需要的特性
@@ -22,3 +23,6 @@ anyhow = "1.0"
 # 日志相关
 log = "0.4"
 env_logger = "0.10"
+
+[build-dependencies]
+winres = "0.1"

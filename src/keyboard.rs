@@ -1,40 +1,11 @@
-use winapi::shared::windef::{HWND, HBRUSH, RECT};
-use winapi::shared::minwindef::{WPARAM, LPARAM, LRESULT};
-use winapi::um::winuser::{
-    CreateWindowExW,
-    RegisterClassExW,
-    DefWindowProcW,
-    ShowWindow,
-    UpdateWindow,
-    SetWindowPos,
-    GetSystemMetrics,
-    InvalidateRect,
-    WNDCLASSEXW,
-    WS_POPUP,
-    WS_EX_TOPMOST,
-    WS_EX_LAYERED,
-    WS_EX_TOOLWINDOW,
-    SW_SHOW,
-    SM_CXSCREEN,
-    SM_CYSCREEN,
-    CS_HREDRAW,
-    CS_VREDRAW,
-    HWND_TOPMOST,
-    SWP_NOSIZE,
-    SWP_SHOWWINDOW,
-};
+use winapi::shared::minwindef::{WPARAM, LPARAM, LRESULT, DWORD};
 use winapi::um::winuser::{
     CallNextHookEx, 
     KBDLLHOOKSTRUCT,
-    WM_KEYDOWN,
-    WM_KEYUP,
-    WM_SYSKEYDOWN,
-    WM_SYSKEYUP,
-    VK_ESCAPE,
     VK_MENU,
+    GetKeyState,
 };
 use std::ptr::null_mut;
-use crate::mode::Mode;
 use crate::window::Direction;
 use crate::indicator;
 
@@ -52,7 +23,7 @@ pub enum Key {
 /// 负责处理所有的键盘事件和按键逻辑
 pub struct KeyboardManager {
     mode_manager: super::mode::ModeManager,      // 模式管理器
-    window_manager: super::window::WindowManager, // 窗口管理器
+    window_manager: Option<super::window::WindowManager>, // 窗口管理器
     indicator: Option<*mut indicator::StatusIndicator>, // 状态指示器
     alt_pressed: bool,         // Alt 键是否被按下
     switching_windows: bool,   // 是否正在切换窗口
@@ -63,7 +34,7 @@ impl KeyboardManager {
     pub fn new() -> Self {
         Self {
             mode_manager: super::mode::ModeManager::new(),
-            window_manager: super::window::WindowManager::new(),
+            window_manager: Some(super::window::WindowManager::new()),
             indicator: None,
             alt_pressed: false,
             switching_windows: false,
@@ -80,84 +51,63 @@ impl KeyboardManager {
     /// - vk_code: 虚拟键码
     /// - flags: 按键标志
     /// - event_type: 事件类型（按下、释放等）
-    pub fn handle_key(&mut self, vk_code: DWORD, flags: DWORD, event_type: u32) -> bool {
-        match event_type {
-            // 处理按键按下事件
-            WM_KEYDOWN | WM_SYSKEYDOWN => {
-                if vk_code == VK_MENU as DWORD {
-                    self.alt_pressed = true;
-                    self.window_manager.start_switching();
-                    return true;
+    pub fn handle_key(&mut self, vk_code: DWORD, flags: DWORD) -> bool {
+        // 检查是否是按键释放事件
+        let is_key_up = (flags & 0x80000000) != 0;
+
+        // 处理 Alt 键
+        if vk_code == VK_MENU as u32 {
+            if is_key_up {
+                // Alt 键释放时结束切换
+                if let Some(window_manager) = &mut self.window_manager {
+                    window_manager.finish_switching();
                 }
-                
-                if self.alt_pressed {
-                    self.handle_window_switch(vk_code)
-                } else {
-                    self.handle_desktop_key(vk_code, flags)
+                self.alt_pressed = false;
+            } else {
+                // Alt 键按下时开始切换
+                if let Some(window_manager) = &mut self.window_manager {
+                    window_manager.start_switching();
                 }
-            },
-            // 处理按键释放事件
-            WM_KEYUP | WM_SYSKEYUP => {
-                if vk_code == VK_MENU as DWORD {
-                    self.alt_pressed = false;
-                    self.window_manager.finish_switching();
-                    return true;
-                }
-                false
-            },
-            _ => false,
+                self.alt_pressed = true;
+            }
+            return false;
         }
-    }
 
-    /// 处理窗口切换快捷键
-    /// 当按下 Alt+H/J/K/L 时调用
-    fn handle_window_switch(&mut self, vk_code: DWORD) -> bool {
-        // 定义虚拟键码常量
-        const VK_H: DWORD = b'H' as DWORD;
-        const VK_J: DWORD = b'J' as DWORD;
-        const VK_K: DWORD = b'K' as DWORD;
-        const VK_L: DWORD = b'L' as DWORD;
+        // 如果 Alt 键被按下
+        let alt_state = unsafe { GetKeyState(VK_MENU as i32) };
+        if (alt_state as u16 & 0x8000u16) != 0 {
+            // 使用常量定义键码
+            const VK_H: i32 = b'H' as i32;
+            const VK_L: i32 = b'L' as i32;
 
-        match vk_code {
-            code if code == VK_H => {
-                self.window_manager.select_window(Direction::Left);
-                true
-            },
-            code if code == VK_L => {
-                self.window_manager.select_window(Direction::Right);
-                true
-            },
-            code if code == VK_K => {
-                self.window_manager.select_window(Direction::Up);
-                true
-            },
-            code if code == VK_J => {
-                self.window_manager.select_window(Direction::Down);
-                true
-            },
-            _ => false,
-        }
-    }
-
-    /// 处理普通模式下的按键
-    /// 主要处理 Esc 和其他功能键
-    fn handle_desktop_key(&mut self, vk_code: DWORD, flags: DWORD) -> bool {
-        const VK_ESCAPE_U32: DWORD = VK_ESCAPE as DWORD;
-        let _is_alt_pressed = flags & (1 << 29) != 0;  // 添加下划线前缀
-
-        match vk_code {
-            VK_ESCAPE_U32 => {
-                // 切换模式并更新状态指示器
-                self.mode_manager.toggle_mode();
-                if let Some(indicator) = self.indicator {
-                    unsafe {
-                        (*indicator).update_mode(self.mode_manager.current_mode());
+            match vk_code as i32 {
+                VK_H => {
+                    if !is_key_up {
+                        if let Some(window_manager) = &mut self.window_manager {
+                            window_manager.select_window(Direction::Left);
+                        }
                     }
+                    return true;
                 }
-                false
-            },
-            _ => false,
+                VK_L => {
+                    if !is_key_up {
+                        if let Some(window_manager) = &mut self.window_manager {
+                            window_manager.select_window(Direction::Right);
+                        }
+                    }
+                    return true;
+                }
+                _ => {}
+            }
+        } else if self.alt_pressed {
+            // Alt 键已经松开
+            if let Some(window_manager) = &mut self.window_manager {
+                window_manager.finish_switching();
+            }
+            self.alt_pressed = false;
         }
+
+        false
     }
 
     /// 发送按键事件（预留接口）
@@ -166,8 +116,8 @@ impl KeyboardManager {
     }
 
     /// 获取窗口管理器的可变引用
-    pub fn get_window_manager(&mut self) -> &mut super::window::WindowManager {
-        &mut self.window_manager
+    pub fn get_window_manager(&mut self) -> Option<&mut super::window::WindowManager> {
+        self.window_manager.as_mut()
     }
 }
 
@@ -192,7 +142,7 @@ pub unsafe extern "system" fn keyboard_hook_proc(
     
     // 如果有键盘管理器，尝试处理按键
     if let Some(manager) = &mut KEYBOARD_MANAGER {
-        if manager.handle_key(kb_struct.vkCode, kb_struct.flags, w_param as u32) {
+        if manager.handle_key(kb_struct.vkCode, kb_struct.flags) {
             return 1;  // 返回1表示我们处理了这个按键
         }
     }

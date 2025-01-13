@@ -1,5 +1,21 @@
 use std::ptr::null_mut;
 use winapi::shared::windef::HHOOK;
+use winapi::um::winuser::{
+    SetWindowsHookExW,
+    UnhookWindowsHookEx,
+    GetMessageW,
+    TranslateMessage,
+    DispatchMessageW,
+    WH_KEYBOARD_LL,
+    MSG,
+    WM_HOTKEY,
+    RegisterHotKey,
+    UnregisterHotKey,
+    MOD_ALT,
+    MOD_NOREPEAT,
+    VK_MENU,
+    WM_KEYUP,
+};
 use crate::keyboard::KEYBOARD_MANAGER;
 use crate::window::Direction;
 
@@ -70,40 +86,35 @@ impl PixelVim {
     }
 
     fn setup_keyboard_hook(&mut self) -> anyhow::Result<()> {
-        use winapi::um::winuser::{
-            RegisterHotKey, MOD_ALT,
-            SetWindowsHookExW, WH_KEYBOARD_LL,
-        };
-        use crate::keyboard::{keyboard_hook_proc, KeyboardManager};
-
         unsafe {
-            // 注册 Alt+H 热键
-            if RegisterHotKey(std::ptr::null_mut(), 1, MOD_ALT as u32, b'H' as u32) == 0 {
-                anyhow::bail!("Failed to register Alt+H hotkey");
-            }
-
-            // 注册 Alt+L 热键
-            if RegisterHotKey(std::ptr::null_mut(), 2, MOD_ALT as u32, b'L' as u32) == 0 {
-                anyhow::bail!("Failed to register Alt+L hotkey");
-            }
-        }
-
-        // 设置键盘钩子（仍然保留用于 Esc 键）
-        let mut keyboard_manager = KeyboardManager::new();
-        keyboard_manager.set_indicator(&mut self.indicator);
-
-        unsafe {
+            // 创建并初始化键盘管理器
+            let mut keyboard_manager = keyboard::KeyboardManager::new();
+            keyboard_manager.set_indicator(&mut self.indicator);
             KEYBOARD_MANAGER = Some(keyboard_manager);
 
+            // 设置键盘钩子
             self.keyboard_hook = SetWindowsHookExW(
                 WH_KEYBOARD_LL,
-                Some(keyboard_hook_proc),
+                Some(keyboard::keyboard_hook_proc),
                 std::ptr::null_mut(),
                 0,
             );
 
             if self.keyboard_hook.is_null() {
-                anyhow::bail!("Failed to set keyboard hook");
+                anyhow::bail!("无法设置键盘钩子");
+            }
+
+            // 注册热键，使用 MOD_NOREPEAT 防止重复触发
+            if RegisterHotKey(null_mut(), 1, MOD_ALT as u32 | MOD_NOREPEAT as u32, b'H' as u32) == 0 {
+                log::warn!("注册 Alt+H 热键失败: {}", std::io::Error::last_os_error());
+            } else {
+                log::debug!("成功注册 Alt+H 热键");
+            }
+            
+            if RegisterHotKey(null_mut(), 2, MOD_ALT as u32 | MOD_NOREPEAT as u32, b'L' as u32) == 0 {
+                log::warn!("注册 Alt+L 热键失败: {}", std::io::Error::last_os_error());
+            } else {
+                log::debug!("成功注册 Alt+L 热键");
             }
         }
 
@@ -111,30 +122,47 @@ impl PixelVim {
     }
 
     fn message_loop(&mut self) -> anyhow::Result<()> {
-        use winapi::um::winuser::{GetMessageW, MSG, TranslateMessage, DispatchMessageW, WM_HOTKEY};
-        
         let mut msg: MSG = unsafe { std::mem::zeroed() };
+        let mut alt_was_pressed = false;  // 添加这个变量来跟踪 Alt 键状态
         
         unsafe {
-            while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
-                if msg.message == WM_HOTKEY {
-                    // 处理热键消息
-                    match msg.wParam as i32 {
-                        1 => { // Alt+H
-                            if let Some(manager) = &mut KEYBOARD_MANAGER {
-                                manager.get_window_manager().switch_window(Direction::Left);
+            while GetMessageW(&mut msg, null_mut(), 0, 0) > 0 {
+                match msg.message {
+                    WM_HOTKEY => {
+                        log::debug!("收到热键消息: wparam={}", msg.wParam);
+                        if let Some(manager) = &mut KEYBOARD_MANAGER {
+                            if let Some(window_manager) = manager.get_window_manager() {
+                                match msg.wParam as i32 {
+                                    1 => {
+                                        log::debug!("处理 Alt+H 热键");
+                                        window_manager.select_window(Direction::Left);
+                                        alt_was_pressed = true;
+                                    },
+                                    2 => {
+                                        log::debug!("处理 Alt+L 热键");
+                                        window_manager.select_window(Direction::Right);
+                                        alt_was_pressed = true;
+                                    },
+                                    _ => {}
+                                }
                             }
-                        },
-                        2 => { // Alt+L
+                        }
+                    },
+                    WM_KEYUP => {
+                        // 检查是否是 Alt 键释放
+                        if msg.wParam == VK_MENU as usize && alt_was_pressed {
                             if let Some(manager) = &mut KEYBOARD_MANAGER {
-                                manager.get_window_manager().switch_window(Direction::Right);
+                                if let Some(window_manager) = manager.get_window_manager() {
+                                    window_manager.finish_switching();
+                                    alt_was_pressed = false;
+                                }
                             }
-                        },
-                        _ => {}
+                        }
+                    },
+                    _ => {
+                        TranslateMessage(&msg);
+                        DispatchMessageW(&msg);
                     }
-                } else {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
                 }
             }
         }
@@ -144,17 +172,15 @@ impl PixelVim {
 
     // 添加清理方法
     fn cleanup(&mut self) {
-        use winapi::um::winuser::{UnhookWindowsHookEx, UnregisterHotKey};
-        
         unsafe {
             // 注销热键
-            UnregisterHotKey(std::ptr::null_mut(), 1);
-            UnregisterHotKey(std::ptr::null_mut(), 2);
+            UnregisterHotKey(null_mut(), 1);
+            UnregisterHotKey(null_mut(), 2);
 
             // 清理钩子
             if !self.keyboard_hook.is_null() {
                 UnhookWindowsHookEx(self.keyboard_hook);
-                self.keyboard_hook = std::ptr::null_mut();
+                self.keyboard_hook = null_mut();
             }
         }
     }
